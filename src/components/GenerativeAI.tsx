@@ -10,7 +10,6 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 const GenerativeAIComponent: React.FC<{ onSend: (message: string, aiResponse: string) => void }> = ({ onSend }) => {
   const [prompt, setPrompt] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handlePromptChange = (event: ChangeEvent<HTMLInputElement>) => {
     setPrompt(event.target.value);
@@ -18,21 +17,17 @@ const GenerativeAIComponent: React.FC<{ onSend: (message: string, aiResponse: st
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsLoading(true);
-
     try {
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const aiResponse = await response.text();
-      
-      // Pass both the user's message and AI's response to the parent component
-      onSend(prompt, aiResponse);
+      const aiResponseText = await response.text();
+
+      // Pass the user's message and the raw AI response to the parent component
+      onSend(prompt, aiResponseText);
       setPrompt(""); // Clear input after sending
     } catch (error) {
       console.error('Error fetching AI response:', error);
       onSend(prompt, 'Error: Unable to fetch AI response');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -58,9 +53,6 @@ const GenerativeAIComponent: React.FC<{ onSend: (message: string, aiResponse: st
           </Button>
         </form>
       </div>
-      {isLoading && (
-        <div className="mt-4 p-2 border rounded">Loading...</div>
-      )}
     </div>
   );
 };
