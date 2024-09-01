@@ -6,32 +6,15 @@ const MainLayout = () => {
   const [messages, setMessages] = useState<{ text: string; type: 'user' | 'ai' }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const handleSend = async (message: string) => {
-    // Add user message
-    setMessages(prevMessages => [...prevMessages, { text: message, type: 'user' }]);
+  const handleSend = (message: string, aiResponse: string) => {
+    // Tambahkan pesan pengguna ke dalam state
+    setMessages(prevMessages => [
+      ...prevMessages,
+      { text: message, type: 'user' },
+      { text: aiResponse, type: 'ai' }
+    ]);
 
-    // Fetch AI response
-    try {
-      const response = await fetch('/api/ai', { // Adjust this to your API endpoint if different
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: message }),
-      });
-      const data = await response.json();
-      setMessages(prevMessages => [
-        ...prevMessages,
-        { text: data.response || 'No response from AI', type: 'ai' }
-      ]);
-    } catch (error) {
-      setMessages(prevMessages => [
-        ...prevMessages,
-        { text: 'Error: Unable to fetch AI response', type: 'ai' }
-      ]);
-    }
-
-    // Scroll to the bottom
+    // Scroll ke bagian bawah
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }

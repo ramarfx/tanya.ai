@@ -1,15 +1,16 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
-import axios from 'axios';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import MarkdownIt from 'markdown-it';
 
-const API_KEY = import.meta.env.VITE_API_KEY; // For Vite
+// Mendapatkan API Key dari variabel lingkungan
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-const GenerativeAIComponent: React.FC<{ onSend: (message: string) => void }> = ({ onSend }) => {
+const GenerativeAIComponent: React.FC<{ onSend: (message: string, aiResponse: string) => void }> = ({ onSend }) => {
   const [prompt, setPrompt] = useState<string>("");
-  const [output, setOutput] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handlePromptChange = (event: ChangeEvent<HTMLInputElement>) => {
     setPrompt(event.target.value);
@@ -17,57 +18,38 @@ const GenerativeAIComponent: React.FC<{ onSend: (message: string) => void }> = (
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setOutput('Generating...');
+    setIsLoading(true);
 
     try {
-      const response = await axios.post(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse',
-        {
-          systemInstruction: `Berikan komentar yang agak menyakitkan tetapi dalam konteks lucu lucuan aja dalam bahasa gaul untuk username seperti berikut ini : ${prompt}. dengan minimal 100 kata`,
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: prompt }],
-            },
-          ],
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      const md = new MarkdownIt();
-      setOutput(md.render(response.data.text || 'No response text available'));
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const aiResponse = await response.text();
+      
+      // Pass both the user's message and AI's response to the parent component
+      onSend(prompt, aiResponse);
+      setPrompt(""); // Clear input after sending
     } catch (error) {
-      console.error('API call error:', error); // Log error details
-      if (axios.isAxiosError(error)) {
-        setOutput(`API Error: ${error.response?.status} ${error.response?.statusText}`);
-      } else {
-        setOutput('Error: ' + (error as Error).message);
-      }
+      console.error('Error fetching AI response:', error);
+      onSend(prompt, 'Error: Unable to fetch AI response');
+    } finally {
+      setIsLoading(false);
     }
-
-    // Notify parent component
-    onSend(prompt);
   };
 
   return (
-    <div className="relative w-full flex justify-center items-center border-t py-4">
-      <div className="flex w-full max-w-screen-sm items-center mx-auto">
-        <form className="w-full flex items-center" onSubmit={handleSubmit}>
+    <div className="relative w-full flex flex-col justify-center items-center py-4 border-t">
+      <div className="w-full max-w-screen-sm mx-auto">
+        <form className="flex items-center" onSubmit={handleSubmit}>
           <Input
             id="user-input"
             className="flex-1 py-2"
-            placeholder="Type your message..."
+            placeholder="Type your question..."
             value={prompt}
             onChange={handlePromptChange}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                handleSubmit(e as any); // type assertion needed to match FormEvent<HTMLFormElement>
+                handleSubmit(e as any); // Type assertion to match FormEvent<HTMLFormElement>
               }
             }}
           />
@@ -76,7 +58,9 @@ const GenerativeAIComponent: React.FC<{ onSend: (message: string) => void }> = (
           </Button>
         </form>
       </div>
-      {output && <div className="mt-4 p-2 border rounded">{output}</div>}
+      {isLoading && (
+        <div className="mt-4 p-2 border rounded">Loading...</div>
+      )}
     </div>
   );
 };
