@@ -1,18 +1,24 @@
 import Sidebar from "@/components/Sidebar";
-import { useState } from "react";
+import { useState, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight } from "lucide-react";
 
 const MainLayout = () => {
   const [messages, setMessages] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState<string>("");
 
   const handleSend = () => {
-    const input = document.getElementById("user-input") as HTMLInputElement | null;
+    if (inputValue.trim()) {
+      setMessages([...messages, inputValue.trim()]);
+      setInputValue(""); // Clear the input field
+    }
+  };
 
-    if (input && input.value.trim()) {
-      setMessages([...messages, input.value.trim()]);
-      input.value = ""; // Clear the input field
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault(); // Prevent the default action (e.g., form submission)
+      handleSend();
     }
   };
 
@@ -37,6 +43,9 @@ const MainLayout = () => {
             id="user-input"
             className="py-6"
             placeholder="Ketikkan Pertanyaanmu..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
           <Button onClick={handleSend} className="absolute right-1.5 bg-primary">
             <ArrowRight className="size-[18px]" />
