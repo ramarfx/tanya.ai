@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
 interface MessagesProps {
-  messages: string[];
+  messages: { text: string; type: 'user' | 'ai' }[]; // Changed to include message type
   onSend: (message: string) => void;
 }
 
@@ -38,9 +38,11 @@ const Messages = forwardRef<HTMLDivElement, MessagesProps>(({ messages, onSend }
           {messages.map((message, index) => (
             <div
               key={index}
-              className="bg-primary text-white py-2 px-4 rounded-lg max-w-xl break-words ml-auto"
+              className={`py-2 px-4 rounded-lg max-w-xl break-words ${
+                message.type === 'user' ? 'bg-primary text-white ml-auto' : 'bg-gray-200 text-black'
+              }`}
             >
-              {message}
+              {message.text}
             </div>
           ))}
           <div ref={ref} />
