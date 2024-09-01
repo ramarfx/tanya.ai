@@ -2,7 +2,7 @@ import { useState, ChangeEvent, FormEvent } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 
 // Mendapatkan API Key dari variabel lingkungan
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_KEY);
@@ -10,6 +10,7 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 const GenerativeAIComponent: React.FC<{ onSend: (message: string, aiResponse: string) => void }> = ({ onSend }) => {
   const [prompt, setPrompt] = useState<string>("");
+  const [isTyping, setIsTyping] = useState<boolean>(false);
 
   const handlePromptChange = (event: ChangeEvent<HTMLInputElement>) => {
     setPrompt(event.target.value);
@@ -17,7 +18,13 @@ const GenerativeAIComponent: React.FC<{ onSend: (message: string, aiResponse: st
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (isTyping) {
+      return; // Prevent sending new messages while AI is typing
+    }
+
     try {
+      setIsTyping(true); // Start AI typing effect
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const aiResponseText = await response.text();
@@ -28,6 +35,8 @@ const GenerativeAIComponent: React.FC<{ onSend: (message: string, aiResponse: st
     } catch (error) {
       console.error('Error fetching AI response:', error);
       onSend(prompt, 'Error: Unable to fetch AI response');
+    } finally {
+      setIsTyping(false); // Stop AI typing effect after response is received
     }
   };
 
@@ -47,9 +56,10 @@ const GenerativeAIComponent: React.FC<{ onSend: (message: string, aiResponse: st
                 handleSubmit(e as any); // Type assertion to match FormEvent<HTMLFormElement>
               }
             }}
+            disabled={isTyping} // Disable input while AI is typing
           />
-          <Button type="submit" className="ml-2 bg-primary">
-            <ArrowRight className="size-[18px]" />
+          <Button type="submit" className="ml-2 bg-primary" disabled={isTyping}>
+            {isTyping ? <X className="size-[18px]" /> : <ArrowRight className="size-[18px]" />}
           </Button>
         </form>
       </div>

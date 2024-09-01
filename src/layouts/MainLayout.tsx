@@ -11,7 +11,7 @@ type MessageType = {
 const MainLayout = () => {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [typingMessage, setTypingMessage] = useState<MessageType | null>(null); // For typing effect
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null); // Ref for scrolling
 
   const handleSend = (message: string, aiResponse: string) => {
     // Add user's message to the state
@@ -32,6 +32,11 @@ const MainLayout = () => {
         setTypingMessage({ text: updatedText, type: 'ai' });
         index++;
         await new Promise(resolve => setTimeout(resolve, 10)); // Adjust typing speed here
+        
+        // Scroll to the bottom during typing
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
       }
       // Finalize the message
       setMessages(prevMessages => [
