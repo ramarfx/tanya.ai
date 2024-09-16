@@ -1,29 +1,28 @@
 import { useState, useRef, useEffect } from "react";
 import GenerativeAIComponent from "@/components/GenerativeAI";
 import Sidebar from "@/components/Sidebar";
+import MarkdownIt from 'markdown-it';
 
-// Define a type for the messages
 type MessageType = {
   text: string;
   type: 'user' | 'ai';
 };
 
+const md = new MarkdownIt();
+
 const MainLayout = () => {
   const [messages, setMessages] = useState<MessageType[]>([]);
-  const [typingMessage, setTypingMessage] = useState<MessageType | null>(null); // For typing effect
-  const messagesEndRef = useRef<HTMLDivElement | null>(null); // Ref for scrolling
+  const [typingMessage, setTypingMessage] = useState<MessageType | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null); 
 
   const handleSend = (message: string, aiResponse: string) => {
-    // Add user's message to the state
     setMessages(prevMessages => [
       ...prevMessages,
       { text: message, type: 'user' }
     ]);
 
-    // Add AI typing placeholder
     setTypingMessage({ text: '', type: 'ai' });
 
-    // Simulate typing effect
     let index = 0;
     const typeEffect = async () => {
       let updatedText = '';
@@ -31,26 +30,25 @@ const MainLayout = () => {
         updatedText += aiResponse[index];
         setTypingMessage({ text: updatedText, type: 'ai' });
         index++;
-        await new Promise(resolve => setTimeout(resolve, 10)); // Adjust typing speed here
+        await new Promise(resolve => setTimeout(resolve, 0)); 
         
-        // Scroll to the bottom during typing
         if (messagesEndRef.current) {
           messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
       }
-      // Finalize the message
+      const aiResponseMarkdown = md.render(aiResponse);
+
       setMessages(prevMessages => [
         ...prevMessages,
-        { text: aiResponse, type: 'ai' }
+        { text: aiResponseMarkdown, type: 'ai' }
       ]);
-      setTypingMessage(null); // Clear typing placeholder
+      setTypingMessage(null); 
     };
 
     typeEffect();
   };
 
   useEffect(() => {
-    // Scroll to the bottom every time messages change
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
@@ -66,20 +64,29 @@ const MainLayout = () => {
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`py-2 px-4 rounded-lg max-w-xl break-words ${message.type === 'user' ? 'ml-auto bg-blue-500 text-white' : 'bg-gray-300 text-black'}`}
+                className={`py-2 px-4 rounded-lg max-w-xl break-words ${
+                  message.type === 'user' ? 'ml-auto bg-blue-500 text-white' : 'bg-gray-300 text-black'
+                }`}
               >
-                {message.text}
+                {message.type === 'ai' ? (
+                  <div
+                    className="p-4 bg-gray-200 border border-gray-400 rounded-lg shadow-md"
+                    dangerouslySetInnerHTML={{ __html: message.text }} 
+                  />
+                ) : (
+                  message.text
+                )}
               </div>
             ))}
-            {/* Display typing effect if present */}
             {typingMessage && (
               <div
-                className={`py-2 px-4 rounded-lg max-w-xl break-words bg-gray-300 text-black`}
+                className={`py-2 px-4 rounded-lg max-w-2xl break-words  text-black`}
               >
-                {typingMessage.text} <span className="text-gray-500">...</span>
+                <div className="p-4 bg-gray-200 border  rounded-lg shadow-md">
+                  {typingMessage.text} <span className="text-gray-500">...</span>
+                </div>
               </div>
             )}
-            {/* Reference element to scroll into view */}
             <div ref={messagesEndRef} />
           </div>
         </div>
